@@ -3,11 +3,13 @@
     "outDir": "./dist/",
     "sourceMap": true,
     "noImplicitAny": true,
+    "resolveJsonModule": true,
     "module": "commonjs",
     "target": "es5",
     "jsx": "react",
     "lib": [
-      "es2015"
+      "es2015",
+      "dom"
     ]
   },
   "include": [

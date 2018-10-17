@@ -6,7 +6,6 @@ interface IAppMenuSearchState {
 
 export interface IAppMenuSearchProps {
   hint: string
-  search: string
   onSearch: (search: string) => void
 }
 
@@ -20,8 +19,8 @@ export default class AppMenuSearch extends React.Component<IAppMenuSearchProps, 
     this.onChange = this.onChange.bind(this)
   }
 
-  onChange(evt: React.ChangeEvent<HTMLInputElement>) {
-    const search = evt.target.textContent
+  onChange(evt: any) {
+    const search = evt.target.value
     this.setState({search}, () => this.props.onSearch(search))
   }
 

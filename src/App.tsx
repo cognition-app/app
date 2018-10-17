@@ -1,12 +1,15 @@
 import * as React from 'react'
-import { PouchDB, withDB, Find } from 'react-pouchdb/browser'
+import * as schema from 'cognition-schema'
 import { Map } from 'immutable'
 import AppContainer from './AppContainer'
 import AppMenu from './AppMenu'
 import AppMenuHr from './AppMenuHr'
 import AppMenuItem from './AppMenuItem'
 import AppMenuSearch from './AppMenuSearch'
-import * as schema from './schema'
+import {
+  PouchDB as ReactPouchDB,
+  withDB
+} from 'react-pouchdb/browser'
 
 export interface IAppPartialProps {
   context: schema.AppContext
@@ -19,10 +22,12 @@ interface IAppProps extends IAppPartialProps {
 interface IAppState {
   repositories: Map<string, schema.RegistryContextInstance>
   views: Map<string, schema.ViewContextInstance>
-  view: string
+  view: schema.ViewContextInstance
   providers: Map<string, schema.ProviderContextInstance>
   providerStatus: Map<string, schema.ProviderStatus>
   registry: Map<string, schema.PluginContext>
+  searchDocuments: string
+  searchPlugins: string
 }
 
 class App extends React.Component<IAppProps, IAppState> {
@@ -36,6 +41,8 @@ class App extends React.Component<IAppProps, IAppState> {
       providers: Map(),
       providerStatus: Map(),
       registry: Map(),
+      searchDocuments: '',
+      searchPlugins: '',
     }
 
     this.install = this.install.bind(this)
@@ -76,7 +83,7 @@ class App extends React.Component<IAppProps, IAppState> {
     ) as schema.PluginContext
 
     // Plugin type lookup
-    const type = this.props.context.supportedPlugins[
+    const type: string = this.props.context.supportedPlugins[
       ctx[`@type`]
     ]
     if(type === undefined) {
@@ -86,7 +93,7 @@ class App extends React.Component<IAppProps, IAppState> {
     }
   
     // Install plugin based on type
-    this['_install_'+type](ctx)
+    (this as any)['_install_'+type](ctx)
   }
 
   async _install_registry(ctx: schema.RegistryContext) {
@@ -99,23 +106,23 @@ class App extends React.Component<IAppProps, IAppState> {
     this.setState({
       registry: this.state.registry.merge(
         // Add namespace to item ids
-        registry.items.map(item => ({
+        registry.items.map((item: schema.PluginContext) => ({
           ...item,
           '@id': [
             ctx['@id'],
             item['@id'],
           ].join('/'),
-        })),
+        }) as schema.PluginContext),
       )
     })
   }
 
-  async _install_view(ctx) {
+  async _install_view(ctx: schema.ViewContext) {
     // Complete view
     const view = {
       ...ctx,
       cls: await import(ctx.entrypoint)
-    }
+    } as schema.ViewContextInstance
 
     // Load view into state
     this.setState({
@@ -126,39 +133,35 @@ class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
-  async _install_provider(ctx) {
+  async _install_provider(ctx: schema.ProviderContext) {
     // Complete provider
-    const Provider = {
-      ...ctx,
-      cls: await import(ctx.entrypoint)
-    }
+    const Provider = (
+      await import(ctx.entrypoint)
+    ) as schema.ProviderClass
 
     // Watch/handle this provider's
     //  settings in db
-    db.changes({
+    this.props.db.changes({
       live: true,
       include_docs: true,
       selector: {
         '@type': {
-          $eq: Provider.settings,
+          $eq: ctx.settings,
         }
       },
-    }).on('change', ({settings}) => {
-      let provider = Provider
-      
-      // Setup @id
-      provider['@id'] = [
-        provider['@id'],
+    }).on('change', (info: PouchDB.Core.ChangesResponseChange<schema.SettingsContext>) => {
+      const settings = info.doc as schema.SettingsContext
+
+      const id = [
+        ctx['@id'],
         settings['@id'],
       ].join('/')
 
-      // Create instance
-      provider.instance = provider.cls(
+      const instance = Provider(
         settings
       )
 
-      // Initiate sync
-      provider.sync = provider.instance.sync(this.props.db, {
+      const sync = instance.sync(this.props.db, {
         live: true,
         retry: true,
         selector: {
@@ -166,43 +169,45 @@ class App extends React.Component<IAppProps, IAppState> {
             '$eq': 'core/Document.json'
           },
           'tags': {
-            '$has': 'provider:' + provider['@id']
+            '$has': 'provider:' + id
           }
         }
-      }).on('change', ({doc}) => {
+      }).on('change', () => {
         // TODO: handle tag changes
         // TODO: notify
-      }).on('active', (info) => {
+      }).on('active', () => {
         this.setState({
-          providerStatus: providerStatus.set(
-            provider['@id'],
-            'active'
+          providerStatus: this.state.providerStatus.set(
+            id, schema.ProviderStatus.Active
           )
         })
-      }).on('paused', (info) => {
+      }).on('paused', () => {
         this.setState({
-          providerStatus: providerStatus.set(
-            provider['@id'],
-            'paused'
+          providerStatus: this.state.providerStatus.set(
+            id, schema.ProviderStatus.Paused
           )
         })
-      }).on('error', (err) => {
+      }).on('error', (err: any) => {
+        console.error(err)
         this.setState({
-          providerStatus: providerStatus.set(
-            provider['@id'],
-            'error: ' + err
+          providerStatus: this.state.providerStatus.set(
+            id, schema.ProviderStatus.Error
           )
         })
       })
 
+      const provider = {
+        ...ctx,
+        '@id': id,
+        instance,
+        sync,
+      } as schema.ProviderContextInstance
+
       // Add to state
       this.setState({
-        providers: this.state.providers.set(
-          provider['@id'],
-          provider
-        )
+        providers: this.state.providers.set(id, provider)
       })
-    }).on('error', (err) => {
+    }).on('error', (err: any) => {
       throw err
     })
   }
@@ -221,9 +226,10 @@ class App extends React.Component<IAppProps, IAppState> {
             <AppMenuHr />
             {this.state.views.map(view => (
               <AppMenuItem
-                label={view.name}
                 onClick={() =>
-                  this.setState({view})
+                  this.setState({
+                    view: this.state.views.get(view['@id'])
+                  })
                 }
               >
                 {view.icon}
@@ -236,47 +242,46 @@ class App extends React.Component<IAppProps, IAppState> {
                 onClick={() => (
                   this.setState({
                     view: {
-                      'view': SettingsView,
-                      'settings': provider.settings
-                    }
+                      ...this.state.views.get('settings'),
+                      settings: provider.settings,
+                    },
                   })
                 )}
               >
                 {provider.icon}
                 {provider.name}
-                <Icon>{this.state.status[provider.name]}</Icon>
+                {this.state.providerStatus.get(provider['@id'])}
               </AppMenuItem>
             ))}
             <AppMenuHr />
             <AppMenuSearch
               hint="Find plugins"
-              onSearch={searchPlugins =>
+              onSearch={(searchPlugins) =>
                 this.setState({searchPlugins})
               }
             />
             {this.state.repositories.filter((plugin) => (
-              any(
-                plugin.name.includes(this.state.searchPlugins),
-                plugin.description.includes(this.state.searchPlugins),
-              )
-            )).map(plugin => {
-              this.install(plugin)
+              plugin.name.includes(this.state.searchPlugins)
+              || plugin.description.includes(this.state.searchPlugins)
+            )).map((plugin: schema.PluginContext) => {
+              this.install(plugin["@id"])
             })}
             <AppMenuItem
-              label="Install new"
               onClick={() => {
-                this.install(fetch(this.state.searchPlugins))
+                this.install(this.state.searchPlugins)
               }}
-            />
+            >
+              Install new
+            </AppMenuItem>
           </AppMenu>
         )}
         body={() => {
-          const View = this.state.view
-          // TODO: get settings
+          const View = this.state.view.cls
           return (
             <View
-              provider={db}
-              search={this.state.search}
+              provider={this.props.db}
+              search={this.state.searchDocuments}
+              settings={this.state.view.settings}
             />
           )
         }}
@@ -288,12 +293,12 @@ class App extends React.Component<IAppProps, IAppState> {
 export default function (props: IAppPartialProps) {
   const AppWithDB = withDB(App)
   return (
-    <PouchDB
+    <ReactPouchDB
       name={props.context.dbName}
     >
       <AppWithDB
         context={props.context}
       />
-    </PouchDB>
+    </ReactPouchDB>
   )
 }

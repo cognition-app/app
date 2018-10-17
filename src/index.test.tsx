@@ -7,7 +7,7 @@ if(module.hot) {
   const context = require.context(
     "mocha-loader!./",
     true,
-    /\.test\.jsx?$/,
+    /\.test\.[tj]sx?$/,
   )
   context.keys().forEach(context)
 }

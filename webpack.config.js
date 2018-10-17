@@ -10,12 +10,12 @@ module.exports = {
     app: [
       '@babel/polyfill',
       'webpack/hot/only-dev-server',
-      path.join(__dirname, "src") + "/index.tsx",
+      path.join(__dirname, 'src') + '/index.tsx',
     ],
     tests: [
       '@babel/polyfill',
       'webpack/hot/only-dev-server',
-      path.join(__dirname, "src") + "/index.test.tsx",
+      path.join(__dirname, 'src') + '/index.test.tsx',
     ],
     client: 'webpack-dev-server/client?http://' + host + ':' + port,
   },
@@ -31,18 +31,18 @@ module.exports = {
       {
         test: /\.[tj]sx?$/,
         exclude: /node_modules/,
-        loader: 'babel-loader',
+        loader: 'babel-loader'
       },
       {
         test: /\.js$/,
-        use: ["source-map-loader"],
-        enforce: "pre"
+        use: ['source-map-loader'],
+        enforce: 'pre'
       },
     ],
   },
   resolve: {
     modules: [
-      path.resolve(__dirname, "node_modules"),
+      path.resolve(__dirname, 'node_modules'),
       path.resolve(__dirname),
     ],
     extensions: [
