@@ -1,0 +1,19 @@
+{
+  "@context": "https://raw.githubusercontent.com/cognition-app/schema/master/core/App.json",
+  "name": "cognition",
+  "version": "0.0.1",
+  "supportedPlugins": {
+    "https://raw.githubusercontent.com/cognition-app/schema/master/core/Registry": "registry",
+    "https://raw.githubusercontent.com/cognition-app/schema/master/core/View": "view",
+    "https://raw.githubusercontent.com/cognition-app/schema/master/core/Provider": "provider"
+  },
+  "dbName": "cognition",
+  "configKey": "cognition",
+  "defaultConfig": {
+    "view": "notelist",
+    "plugins": [
+      "file:///home/u8sand/Programs/cognition-app/registry/cognition.json",
+      "file:///home/u8sand/Programs/cognition-app/view-notelist/cognition.json"
+    ]
+  }
+}
