@@ -1,10 +1,11 @@
 
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import * as schema from 'cognition-schema'
 import App from './App'
+import AppSchema from './schema/app/plugin'
+import { cognition } from '../package.json'
 
-const context = require('../package.json').cognition as schema.AppContext
+const context = cognition as AppSchema
 
 ReactDOM.render((
     <App

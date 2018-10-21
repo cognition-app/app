@@ -1,6 +1,10 @@
 import * as React from 'react'
 
-export default class AppMenu extends React.Component {
+export interface IAppMenuProps {
+  id: string
+}
+
+export default class AppMenu extends React.Component<IAppMenuProps> {
   render() {
     return (
       <ul className="sidenav sidenav-fixed" {...this.props}>

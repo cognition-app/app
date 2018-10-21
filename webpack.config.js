@@ -24,7 +24,7 @@ module.exports = {
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'bundle.[name].js',
-    library: ['cognition', '[name]'],
+    library: ['cognition', 'cognition-app', '[name]'],
   },
   module: {
     rules: [
@@ -37,6 +37,11 @@ module.exports = {
         test: /\.js$/,
         use: ['source-map-loader'],
         enforce: 'pre'
+      },
+      {
+        parser: {
+          system: false
+        }
       },
     ],
   },
@@ -53,6 +58,9 @@ module.exports = {
       '.json',
     ],
   },
+  externals: [
+    require('webpack-require-http'),
+  ],
   plugins: [
     new webpack.NamedModulesPlugin(),
     new HtmlWebpackPlugin({
@@ -70,7 +78,7 @@ module.exports = {
   devServer: {
     host: host,
     port: port,
-    https: true,
+    // https: true,
     // open: true,
   },
 }

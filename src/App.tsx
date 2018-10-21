@@ -1,18 +1,26 @@
 import * as React from 'react'
-import * as schema from 'cognition-schema'
-import { Map } from 'immutable'
-import AppContainer from './AppContainer'
 import AppMenu from './AppMenu'
 import AppMenuHr from './AppMenuHr'
 import AppMenuItem from './AppMenuItem'
 import AppMenuSearch from './AppMenuSearch'
-import {
-  PouchDB as ReactPouchDB,
-  withDB
-} from 'react-pouchdb/browser'
+import ErrorHandler from './ErrorHandler'
+import AppSchema from './schema/app/plugin'
+import AppSchemaConfig from './schema/app/config'
+import PluginSchema from 'cognition-schema/dist/core/plugin'
+import ProviderInstanceSchema from 'cognition-schema/dist/core/plugin/provider/instance'
+import ProviderSchema from 'cognition-schema/dist/core/plugin/provider'
+import RegistryInstanceSchema from 'cognition-schema/dist/core/plugin/registry/instance'
+import RegistrySchema from 'cognition-schema/dist/core/plugin/registry'
+import SettingsSchema from 'cognition-schema/dist/core/settings'
+import ViewInstanceSchema from 'cognition-schema/dist/core/plugin/view/instance'
+import ViewSchema from 'cognition-schema/dist/core/plugin/view'
+import { Map } from 'immutable'
+import { PouchDB as ReactPouchDB } from 'react-pouchdb/browser'
+import { script } from 'dynamic-import/dist/import.js'
+import { withDB } from 'react-pouchdb/browser'
 
 export interface IAppPartialProps {
-  context: schema.AppContext
+  context: AppSchema
 }
 
 interface IAppProps extends IAppPartialProps {
@@ -20,12 +28,13 @@ interface IAppProps extends IAppPartialProps {
 }
 
 interface IAppState {
-  repositories: Map<string, schema.RegistryContextInstance>
-  views: Map<string, schema.ViewContextInstance>
-  view: schema.ViewContextInstance
-  providers: Map<string, schema.ProviderContextInstance>
-  providerStatus: Map<string, schema.ProviderStatus>
-  registry: Map<string, schema.PluginContext>
+  registries: Map<string, PluginSchema<RegistryInstanceSchema>>
+  views: Map<string, PluginSchema<ViewInstanceSchema>>
+  view?: string
+  providers: Map<string, PluginSchema<ProviderInstanceSchema>>
+  providerInstances: Map<string, any>
+  pluginStatus: Map<string, string>
+  registry: Map<string, PluginSchema>
   searchDocuments: string
   searchPlugins: string
 }
@@ -35,14 +44,14 @@ class App extends React.Component<IAppProps, IAppState> {
     super(props)
 
     this.state = {
-      repositories: Map(),
-      views: Map(),
-      view: null,
       providers: Map(),
-      providerStatus: Map(),
+      pluginStatus: Map(),
+      providerInstances: Map(),
+      registries: Map(),
       registry: Map(),
       searchDocuments: '',
       searchPlugins: '',
+      views: Map(),
     }
 
     this.install = this.install.bind(this)
@@ -57,12 +66,14 @@ class App extends React.Component<IAppProps, IAppState> {
   }
 
   async _initialize() {
+    // TODO: watch config
+
     // get existing config or defaultConfig
-    let config
+    let config: AppSchemaConfig
     try {
-      config = await this.props.db.get(this.context.configKey)
+      config = (await this.props.db.get(this.props.context.configId)) as AppSchemaConfig
     } catch {
-      config = this.props.context.defaultConfig
+      config = this.props.context.config as AppSchemaConfig
     }
 
     // Install all configured plugins
@@ -77,67 +88,106 @@ class App extends React.Component<IAppProps, IAppState> {
   }
 
   async install(plugin: string) {
+    if (plugin === '')
+      return
+
     // Get plugin context
-    const ctx = (
-      this.state.registry.get(plugin) || await (await fetch(plugin)).json()
-    ) as schema.PluginContext
+    const ctx: PluginSchema = (
+      this.state.registry.get(plugin + '/package.json') || (
+        (await
+          (await
+            fetch(plugin + '/package.json')
+          ).json()
+        )
+      )
+    ) as PluginSchema
 
     // Plugin type lookup
     const type: string = this.props.context.supportedPlugins[
-      ctx[`@type`]
+      ctx.cognition[`@type`]
     ]
     if(type === undefined) {
       throw new Error(
-        ctx['@type'] + ' is not in `supportedPlugins`'
+        ctx.cognition['@type'] + ' is not in `supportedPlugins`'
       )
     }
-  
+
     // Install plugin based on type
-    (this as any)['_install_'+type](ctx)
+    (this as any)['_install_'+type](plugin, ctx)
   }
 
-  async _install_registry(ctx: schema.RegistryContext) {
+  async _install_registry(plugin: string, ctx: PluginSchema<RegistrySchema>) {
     // Get actual registry items
-    const registry = JSON.parse(
-      await (await fetch(ctx.entrypoint)).json()
-    )
+    const registry = {
+      ...ctx,
+      cognition: {
+        ...ctx.cognition,
+        items:
+          await
+            (await
+              fetch(plugin + '/' + ctx.main)
+            ).json()
+      }
+    } as PluginSchema<RegistryInstanceSchema>
 
     // Load registry into state
     this.setState({
       registry: this.state.registry.merge(
         // Add namespace to item ids
-        registry.items.map((item: schema.PluginContext) => ({
-          ...item,
-          '@id': [
-            ctx['@id'],
-            item['@id'],
-          ].join('/'),
-        }) as schema.PluginContext),
+        registry.cognition.items.reduce(
+          (items: Map<string, PluginSchema>, item: PluginSchema) => (
+            items.set(
+              [
+                ctx.name,
+                item.name,
+              ].join('/'),
+              item
+            )
+          ), Map()
+        )
       )
     })
   }
 
-  async _install_view(ctx: schema.ViewContext) {
+  async _install_view(plugin: string, ctx: PluginSchema<ViewSchema>) {
+    await script.import(plugin + '/' + ctx.main)
+
     // Complete view
     const view = {
       ...ctx,
-      cls: await import(ctx.entrypoint)
-    } as schema.ViewContextInstance
+      cognition: {
+        ...ctx.cognition,
+        cls: (window as any).cognition[ctx.name].export.default
+      }
+    } as PluginSchema<ViewInstanceSchema>
 
     // Load view into state
     this.setState({
       views: this.state.views.set(
-        view['@id'],
+        view.name,
         view
-      )
+      ),
+      pluginStatus: this.state.pluginStatus.set(
+        'view.' + view.name, 'refresh'
+      ),
     })
   }
 
-  async _install_provider(ctx: schema.ProviderContext) {
+  async _install_provider(plugin: string, ctx: PluginSchema<ProviderSchema>) {
+    await script.import(plugin + '/' + ctx.main)
+
     // Complete provider
-    const Provider = (
-      await import(ctx.entrypoint)
-    ) as schema.ProviderClass
+    const provider = {
+      ...ctx,
+      cognition: {
+        ...ctx.cognition,
+        cls: (window as any).cognition[ctx.name].export.default
+      }
+    } as PluginSchema<ProviderInstanceSchema>
+
+    this.setState({
+      providers: this.state.providers.set(provider.name, provider)
+    })
 
     // Watch/handle this provider's
     //  settings in db
@@ -146,19 +196,27 @@ class App extends React.Component<IAppProps, IAppState> {
       include_docs: true,
       selector: {
         '@type': {
-          $eq: ctx.settings,
-        }
+          '$eq': 'https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/settings',
+        },
+        'content.@type': {
+          '$eq': ctx.cognition.settings,
+        },
       },
-    }).on('change', (info: PouchDB.Core.ChangesResponseChange<schema.SettingsContext>) => {
-      const settings = info.doc as schema.SettingsContext
+    }).on('change', (info: PouchDB.Core.ChangesResponseChange<SettingsSchema>) => {
+      const settings = info.doc as SettingsSchema
+
+      if(settings._deleted) {
+        // TODO: uninstall provider instance
+        return
+      }
 
       const id = [
-        ctx['@id'],
-        settings['@id'],
+        ctx.name,
+        settings.name,
       ].join('/')
 
-      const instance = Provider(
-        settings
+      const instance = provider.cognition.cls(
+        settings.content
       )
 
       const sync = instance.sync(this.props.db, {
@@ -166,105 +224,241 @@ class App extends React.Component<IAppProps, IAppState> {
         retry: true,
         selector: {
           '@type': {
-            '$eq': 'core/Document.json'
+            '$eq': 'https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/document',
           },
           'tags': {
-            '$has': 'provider:' + id
-          }
+            '$elemMatch': {
+              '$eq': 'provider:' + id,
+            }
+          },
         }
-      }).on('change', () => {
+      }).on('change', (info) => {
         // TODO: handle tag changes
         // TODO: notify
       }).on('active', () => {
         this.setState({
-          providerStatus: this.state.providerStatus.set(
-            id, schema.ProviderStatus.Active
+          pluginStatus: this.state.pluginStatus.set(
+            'provider.' + id, 'sync'
           )
         })
       }).on('paused', () => {
         this.setState({
-          providerStatus: this.state.providerStatus.set(
-            id, schema.ProviderStatus.Paused
+          pluginStatus: this.state.pluginStatus.set(
+            'provider.' + id, 'sync_disabled'
           )
         })
       }).on('error', (err: any) => {
+        // TODO: this._handle_error(ctx, err)
         console.error(err)
         this.setState({
-          providerStatus: this.state.providerStatus.set(
-            id, schema.ProviderStatus.Error
+          pluginStatus: this.state.pluginStatus.set(
+            'provider.' + id, 'sync_problem'
           )
         })
       })
 
-      const provider = {
-        ...ctx,
-        '@id': id,
-        instance,
-        sync,
-      } as schema.ProviderContextInstance
-
-      // Add to state
+      // TODO: store this somewhere else
       this.setState({
-        providers: this.state.providers.set(id, provider)
+        providerInstances: this.state.providerInstances.set(
+          id,
+          {
+            settings,
+            instance,
+            sync,
+          }
+        )
       })
     }).on('error', (err: any) => {
-      throw err
+      this._handle_error(ctx, err)
+    })
+  }
+
+  _handle_error(plugin: PluginSchema, err: any, info?: any) {
+    console.error(err)
+    console.info(info)
+
+    const type: string = this.props.context.supportedPlugins[
+      plugin.cognition[`@type`]
+    ]
+
+    this.setState({
+      view: undefined,
+      pluginStatus: this.state.pluginStatus.set(
+        type + '.' + plugin.name, 'error'
+      )
     })
   }
 
   render() {
+    const view = this.state.view !== undefined ?
+      this.state.views.get(this.state.view) : undefined
+
+    const View = view !== undefined ? 
+      view.cognition.cls : () => <div>No View</div>
+
     return (
-      <AppContainer
-        sidebar={() => (
-          <AppMenu>
+      <div className="root">
+        <header>
+          <div className="navbar-fixed">
+            <nav className="green">
+              <div className="nav-wrapper">
+                <a
+                  href="#!"
+                  className="brand-logo"
+                >
+                  Cognition
+                </a>
+                <a
+                  href="#"
+                  data-target="sidenav"
+                  className="sidenav-trigger hide-on-large"
+                >
+                  <i className="material-icons">menu</i>
+                </a>
+              </div>
+            </nav>
+          </div>
+          <AppMenu id="sidenav">
             <AppMenuSearch
               hint="Find documents"
-              onSearch={searchDocuments =>
+              value={this.state.searchDocuments}
+              onChange={(searchDocuments) =>
                 this.setState({searchDocuments})
               }
             />
             <AppMenuHr />
-            {this.state.views.map(view => (
-              <AppMenuItem
-                onClick={() =>
-                  this.setState({
-                    view: this.state.views.get(view['@id'])
-                  })
-                }
-              >
-                {view.icon}
-                {view.name}
-              </AppMenuItem>
-            ))}
+            {this.state.views.keySeq().map(viewInstanceKey => {
+              const view = this.state.views.get(viewInstanceKey)
+              const viewStatus = this.state.pluginStatus.get('view.' + viewInstanceKey)
+
+              return (
+                <li
+                  key={"view." + view.name}
+                >
+                  <span
+                    style={{
+                      display: 'block',
+                      height: 48,
+                      paddingLeft: 32,
+                    }}
+                  >
+                    <a
+                      href="#!"
+                      onClick={() =>
+                        this.setState({
+                          view: view.name
+                        })
+                      }
+                    >
+                      {view.name}
+                    </a>
+                    <a
+                      href="#!"
+                      onClick={() => {
+                        console.log('TODO: refresh')
+                      }}
+                    >
+                      <i className="material-icons">
+                        {viewStatus}
+                      </i>
+                    </a>
+                    <a
+                      href="#!"
+                      onClick={() => {
+                        this.setState({
+                          view: 'settings',
+                          searchDocuments: JSON.stringify({
+                            '@type': {
+                              '$eq': view.settings,
+                            }
+                          }),
+                        })
+                      }}
+                    >
+                      <i className="material-icons">
+                        settings
+                        </i>
+                    </a>
+                  </span>
+                </li>
+              )
+            })}
             <AppMenuHr />
-            {this.state.providers.map(provider => (
-              <AppMenuItem
-                onClick={() => (
-                  this.setState({
-                    view: {
-                      ...this.state.views.get('settings'),
-                      settings: provider.settings,
-                    },
-                  })
-                )}
-              >
-                {provider.icon}
-                {provider.name}
-                {this.state.providerStatus.get(provider['@id'])}
-              </AppMenuItem>
-            ))}
+            {this.state.providerInstances.keySeq().map((providerInstanceKey) => {
+              const provider = this.state.providers.get(providerInstanceKey.split('/')[0])
+              const providerInstance = this.state.providerInstances.get(providerInstanceKey)
+              const providerStatus = this.state.pluginStatus.get('provider.' + providerInstanceKey)
+
+              return (
+                <li
+                  key={"provider." + provider}
+                >
+                  <span
+                    style={{
+                      display: 'block',
+                      height: 48,
+                      paddingLeft: 32,
+                    }}
+                  >
+                    <a
+                      href="#!"
+                      onClick={() => (
+                        this.setState({
+                          view: 'settings',
+                          searchDocuments: JSON.stringify({
+                            '@type': {
+                              '$eq': providerInstance.settings,
+                            }
+                          }),
+                        })
+                      )}
+                    >
+                      {provider.name}
+                    </a>
+                    <a
+                      href="#!"
+                      onClick={() => {
+                        console.log('TODO: refresh')
+                      }}
+                    >
+                      <i className="material-icons">
+                        {providerStatus}
+                      </i>
+                    </a>
+                    <a
+                      href="#!"
+                      onClick={() => {
+                        this.setState({
+                          view: 'settings',
+                          searchDocuments: JSON.stringify({
+                            '@type': {
+                              '$eq': providerInstance.settings,
+                            }
+                          }),
+                        })
+                      }}
+                    >
+                      <i className="material-icons">
+                        settings
+                      </i>
+                    </a>
+                  </span>
+                </li>
+              )
+            })}
             <AppMenuHr />
             <AppMenuSearch
               hint="Find plugins"
-              onSearch={(searchPlugins) =>
+              value={this.state.searchPlugins}
+              onChange={(searchPlugins) =>
                 this.setState({searchPlugins})
               }
             />
-            {this.state.repositories.filter((plugin) => (
+            {this.state.registries.valueSeq().filter((plugin) => (
               plugin.name.includes(this.state.searchPlugins)
               || plugin.description.includes(this.state.searchPlugins)
-            )).map((plugin: schema.PluginContext) => {
-              this.install(plugin["@id"])
+            )).map((plugin: PluginSchema) => {
+              this.install(plugin.name)
             })}
             <AppMenuItem
               onClick={() => {
@@ -274,18 +468,19 @@ class App extends React.Component<IAppProps, IAppState> {
               Install new
             </AppMenuItem>
           </AppMenu>
-        )}
-        body={() => {
-          const View = this.state.view.cls
-          return (
+        </header>
+        <main>
+          <ErrorHandler
+            onCatch={(err, info) => this._handle_error(view, err, info)}
+          >
             <View
-              provider={this.props.db}
+              db={this.props.db}
               search={this.state.searchDocuments}
-              settings={this.state.view.settings}
             />
-          )
-        }}
-      />
+          </ErrorHandler>
+        </main>
+        <footer className="green page-footer footer-copyright" />
+      </div>
     )
   }
 }

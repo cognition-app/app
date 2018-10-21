@@ -7,7 +7,7 @@ export interface IAppMenuItemProps {
 export default class AppMenuItem extends React.Component<IAppMenuItemProps> {
   render() {
     return (
-      <li onClick={this.props.onClick}>
+      <li>
         {this.props.children}
       </li>
     )
