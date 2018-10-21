@@ -11,7 +11,7 @@
     <link
       type="text/css"
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+      href="node_modules/materialize-css/dist/css/materialize.min.css"
       media="screen,projection"
     />
     <meta
@@ -40,12 +40,22 @@
           padding-left: 300px;
         }
       }
+      ul.sidenav > li > span {
+        display: block;
+        height: 48px;
+        padding-left: 32px;
+        white-space: nowrap;
+      }
+      ul.sidenav > li > span > a {
+        display: inline-block;
+        padding: 5px;
+      }
     </style>
   </head>
   <body>
     <div id="root" class="root"></div>
     <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"
+      src="node_modules/materialize-css/dist/js/materialize.min.js"
     ></script>
     <script
       src="node_modules/systemjs/dist/system.js"

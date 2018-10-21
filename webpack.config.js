@@ -2,7 +2,7 @@ var path = require('path')
 var webpack = require('webpack')
 var HtmlWebpackPlugin = require('html-webpack-plugin')
 
-var host = 'localhost.u8sand.net'
+var host = 'localhost'
 var port = '9876'
 
 module.exports = {

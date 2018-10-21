@@ -334,6 +334,7 @@ class App extends React.Component<IAppProps, IAppState> {
               return (
                 <li
                   key={"view." + view.name}
+                  className={this.state.view === view.name ? "active" : ""}
                 >
                   <span
                     style={{
