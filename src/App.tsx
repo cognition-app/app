@@ -6,18 +6,19 @@ import AppMenuSearch from './AppMenuSearch'
 import ErrorHandler from './ErrorHandler'
 import AppSchema from './schema/app/plugin'
 import AppSchemaConfig from './schema/app/config'
-import PluginSchema from 'cognition-schema/dist/core/plugin'
-import ProviderInstanceSchema from 'cognition-schema/dist/core/plugin/provider/instance'
-import ProviderSchema from 'cognition-schema/dist/core/plugin/provider'
-import RegistryInstanceSchema from 'cognition-schema/dist/core/plugin/registry/instance'
-import RegistrySchema from 'cognition-schema/dist/core/plugin/registry'
-import SettingsSchema from 'cognition-schema/dist/core/settings'
-import ViewInstanceSchema from 'cognition-schema/dist/core/plugin/view/instance'
-import ViewSchema from 'cognition-schema/dist/core/plugin/view'
+import PluginSchema from '@cognition-app/schema/dist/core/plugin'
+import ProviderInstanceSchema from '@cognition-app/schema/dist/core/plugin/provider/instance'
+import ProviderSchema from '@cognition-app/schema/dist/core/plugin/provider'
+import RegistryInstanceSchema from '@cognition-app/schema/dist/core/plugin/registry/instance'
+import RegistrySchema from '@cognition-app/schema/dist/core/plugin/registry'
+import SettingsSchema from '@cognition-app/schema/dist/core/settings'
+import ViewInstanceSchema from '@cognition-app/schema/dist/core/plugin/view/instance'
+import ViewSchema from '@cognition-app/schema/dist/core/plugin/view'
 import { Map } from 'immutable'
 import { PouchDB as ReactPouchDB } from 'react-pouchdb/browser'
 import { script } from 'dynamic-import/dist/import.js'
 import { withDB } from 'react-pouchdb/browser'
+import { assertType } from 'typescript-is'
 
 export interface IAppPartialProps {
   context: AppSchema
@@ -71,9 +72,9 @@ class App extends React.Component<IAppProps, IAppState> {
     // get existing config or defaultConfig
     let config: AppSchemaConfig
     try {
-      config = (await this.props.db.get(this.props.context.configId)) as AppSchemaConfig
+      config = assertType<AppSchemaConfig>(await this.props.db.get(this.props.context.configId))
     } catch {
-      config = this.props.context.config as AppSchemaConfig
+      config = assertType<AppSchemaConfig>(this.props.context.config)
     }
 
     // Install all configured plugins
@@ -92,7 +93,7 @@ class App extends React.Component<IAppProps, IAppState> {
       return
 
     // Get plugin context
-    const ctx: PluginSchema = (
+    const ctx = assertType<PluginSchema>(
       this.state.registry.get(plugin + '/package.json') || (
         (await
           (await
@@ -100,7 +101,7 @@ class App extends React.Component<IAppProps, IAppState> {
           ).json()
         )
       )
-    ) as PluginSchema
+    )
 
     // Plugin type lookup
     const type: string = this.props.context.supportedPlugins[
@@ -118,7 +119,7 @@ class App extends React.Component<IAppProps, IAppState> {
 
   async _install_registry(plugin: string, ctx: PluginSchema<RegistrySchema>) {
     // Get actual registry items
-    const registry = {
+    const registry = assertType<PluginSchema<RegistryInstanceSchema>>({
       ...ctx,
       cognition: {
         ...ctx.cognition,
@@ -128,7 +129,7 @@ class App extends React.Component<IAppProps, IAppState> {
               fetch(plugin + '/' + ctx.main)
             ).json()
       }
-    } as PluginSchema<RegistryInstanceSchema>
+    })
 
     // Load registry into state
     this.setState({
@@ -153,13 +154,13 @@ class App extends React.Component<IAppProps, IAppState> {
     await script.import(plugin + '/' + ctx.main)
 
     // Complete view
-    const view = {
+    const view = assertType<PluginSchema<ViewInstanceSchema>>({
       ...ctx,
       cognition: {
         ...ctx.cognition,
         cls: (window as any).cognition[ctx.name].export.default
       }
-    } as PluginSchema<ViewInstanceSchema>
+    })
 
     // Load view into state
     this.setState({
@@ -177,13 +178,13 @@ class App extends React.Component<IAppProps, IAppState> {
     await script.import(plugin + '/' + ctx.main)
 
     // Complete provider
-    const provider = {
+    const provider = assertType<PluginSchema<ProviderInstanceSchema>>({
       ...ctx,
       cognition: {
         ...ctx.cognition,
         cls: (window as any).cognition[ctx.name].export.default
       }
-    } as PluginSchema<ProviderInstanceSchema>
+    })
 
     this.setState({
       providers: this.state.providers.set(provider.name, provider)
@@ -289,7 +290,7 @@ class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
-  render() {
+  render(): JSX.Element {
     const view = this.state.view !== undefined ?
       this.state.views.get(this.state.view) : undefined
 

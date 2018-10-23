@@ -1,4 +1,4 @@
-import JSONLD from 'cognition-schema/dist/base/json-ld'
+import JSONLD from '@cognition-app/schema/dist/base/json-ld'
 
 /**
  * App configuration

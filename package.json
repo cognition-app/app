@@ -1,6 +1,6 @@
 {
   "@type": "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin",
-  "name": "cognition-app",
+  "name": "@cognition-app/app",
   "version": "1.0.0",
   "description": "The actual cognition application, assembling all the components in a unifying application",
   "scripts": {
@@ -55,7 +55,6 @@
   "dependencies": {
     "@material-ui/core": "^3.2.0",
     "@material-ui/icons": "^3.0.1",
-    "cognition-schema": "file:../schema",
     "dynamic-import": "^0.1.0",
     "immutable": "^3.8.2",
     "materialize-css": "^1.0.0-rc.2",
@@ -63,7 +62,8 @@
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
     "react-pouchdb": "^0.3.0",
-    "systemjs": "^2.0.2"
+    "systemjs": "^2.0.2",
+    "typescript-is": "^0.7.9"
   },
   "cognition": {
     "@type": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/plugin",
@@ -76,10 +76,10 @@
     "configId": "cognition",
     "config": {
       "@type": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/config",
-      "view": "cognition-view-dummy",
+      "view": "@cognition-app/view-dummy",
       "plugins": [
-        "http://localhost:8080/cognition-app/view-dummy",
-        "http://localhost:8080/cognition-app/provider-couchdb"
+        "@cognition-app/registry",
+        "@cognition-app/view-dummy"
       ]
     }
   }
