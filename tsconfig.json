@@ -4,8 +4,10 @@
     "sourceMap": true,
     "noImplicitAny": false,
     "experimentalDecorators": true,
+    "resolveJsonModule": true,
     "allowJs": true,
-    "module": "umd",
+    "moduleResolution": "node",
+    "module": "amd",
     "target": "es6",
     "jsx": "react",
     "lib": [

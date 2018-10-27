@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin",
+  "$schema": "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin.json",
   "name": "@cognition-app/app",
   "version": "1.0.0",
   "description": "The actual cognition application, assembling all the components in a unifying application",
@@ -30,9 +30,6 @@
     "@babel/register": "^7.0.0",
     "@types/enzyme": "^3.1.14",
     "@types/enzyme-adapter-react-16": "^1.0.3",
-    "@types/pouchdb-browser": "^6.1.2",
-    "@types/react": "^16.4.18",
-    "@types/react-dom": "^16.0.9",
     "@types/webpack-env": "^1.13.6",
     "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "^8.0.4",
@@ -53,8 +50,13 @@
     "webpack-require-http": "^0.4.3"
   },
   "dependencies": {
+    "@cognition-app/schema": "file:../schema",
     "@material-ui/core": "^3.2.0",
     "@material-ui/icons": "^3.0.1",
+    "@types/pouchdb": "^6.3.2",
+    "@types/pouchdb-browser": "^6.1.2",
+    "@types/react": "^16.4.18",
+    "@types/react-dom": "^16.0.9",
     "dynamic-import": "^0.1.0",
     "immutable": "^3.8.2",
     "materialize-css": "^1.0.0-rc.2",
