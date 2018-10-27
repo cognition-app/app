@@ -24,7 +24,8 @@ module.exports = {
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'bundle.[name].js',
-    library: ['cognition', 'cognition-app', '[name]'],
+    library: 'cognition',
+    libraryTarget: 'amd',
   },
   module: {
     rules: [
@@ -37,11 +38,6 @@ module.exports = {
         test: /\.js$/,
         use: ['source-map-loader'],
         enforce: 'pre'
-      },
-      {
-        parser: {
-          system: false
-        }
       },
     ],
   },
@@ -60,6 +56,7 @@ module.exports = {
   },
   externals: [
     require('webpack-require-http'),
+    /^http.+$/,
   ],
   plugins: [
     new webpack.NamedModulesPlugin(),

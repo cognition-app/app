@@ -3,8 +3,9 @@
     "outDir": "./dist/",
     "sourceMap": true,
     "noImplicitAny": false,
-    "resolveJsonModule": true,
-    "module": "commonjs",
+    "experimentalDecorators": true,
+    "allowJs": true,
+    "module": "umd",
     "target": "es6",
     "jsx": "react",
     "lib": [

@@ -55,15 +55,16 @@
   <body>
     <div id="root" class="root"></div>
     <script
-      src="node_modules/materialize-css/dist/js/materialize.min.js"
-    ></script>
-    <script
-      src="node_modules/systemjs/dist/system.js"
+    src="node_modules/materialize-css/dist/js/materialize.min.js"
     ></script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         M.AutoInit();
+        require(['cognition'], function(cognition) {
+          console.log(cognition)
+        })
       });
     </script>
+    <script src="node_modules/requirejs/require.js"></script>
   </body>
 </html>

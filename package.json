@@ -1,11 +1,12 @@
 {
-  "@type": "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin",
+  "$schema": "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin",
   "name": "@cognition-app/app",
   "version": "1.0.0",
   "description": "The actual cognition application, assembling all the components in a unifying application",
   "scripts": {
     "start": "webpack-dev-server --hot",
-    "build": "webpack"
+    "build": "webpack",
+    "check-types": "tsc"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@babel/cli": "^7.1.2",
     "@babel/core": "^7.1.2",
+    "@babel/plugin-syntax-dynamic-import": "^7.0.0",
     "@babel/plugin-syntax-jsx": "^7.0.0",
     "@babel/polyfill": "^7.0.0",
     "@babel/preset-env": "^7.1.0",
@@ -29,13 +31,11 @@
     "@types/enzyme": "^3.1.14",
     "@types/enzyme-adapter-react-16": "^1.0.3",
     "@types/pouchdb-browser": "^6.1.2",
-    "@types/react": "^16.4.16",
+    "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
-    "@types/systemjs": "^0.20.6",
     "@types/webpack-env": "^1.13.6",
     "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "^8.0.4",
-    "babel-plugin-dynamic-import-node": "^2.2.0",
     "core-js": "^2.5.7",
     "enzyme": "^3.7.0",
     "enzyme-adapter-react-16": "^1.6.0",
@@ -62,11 +62,11 @@
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
     "react-pouchdb": "^0.3.0",
-    "systemjs": "^2.0.2",
-    "typescript-is": "^0.7.9"
+    "requirejs": "^2.3.6",
+    "systemjs": "^2.0.2"
   },
   "cognition": {
-    "@type": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/plugin",
+    "$schema": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/plugin",
     "supportedPlugins": {
       "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin/provider": "provider",
       "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin/registry": "registry",
@@ -75,11 +75,10 @@
     "dbName": "cognition",
     "configId": "cognition",
     "config": {
-      "@type": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/config",
-      "view": "@cognition-app/view-dummy",
+      "$schema": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/config",
+      "view": "@cognition-app/view-dummy@1.0.0",
       "plugins": [
-        "@cognition-app/registry",
-        "@cognition-app/view-dummy"
+        "@cognition-app/view-dummy@1.0.0"
       ]
     }
   }

@@ -7,10 +7,15 @@ import { cognition } from '../package.json'
 
 const context = cognition as AppSchema
 
-ReactDOM.render((
-    <App
-      context={context}
-    />
-  ),
+const app = (
+  <App
+    context={context}
+  />
+)
+
+ReactDOM.render(
+  app,
   document.getElementById('root')
 )
+
+export default app

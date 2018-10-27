@@ -3,9 +3,9 @@ import AppMenu from './AppMenu'
 import AppMenuHr from './AppMenuHr'
 import AppMenuItem from './AppMenuItem'
 import AppMenuSearch from './AppMenuSearch'
-import ErrorHandler from './ErrorHandler'
 import AppSchema from './schema/app/plugin'
 import AppSchemaConfig from './schema/app/config'
+import ErrorHandler from './ErrorHandler'
 import PluginSchema from '@cognition-app/schema/dist/core/plugin'
 import ProviderInstanceSchema from '@cognition-app/schema/dist/core/plugin/provider/instance'
 import ProviderSchema from '@cognition-app/schema/dist/core/plugin/provider'
@@ -14,11 +14,10 @@ import RegistrySchema from '@cognition-app/schema/dist/core/plugin/registry'
 import SettingsSchema from '@cognition-app/schema/dist/core/settings'
 import ViewInstanceSchema from '@cognition-app/schema/dist/core/plugin/view/instance'
 import ViewSchema from '@cognition-app/schema/dist/core/plugin/view'
+import { assertType } from '@cognition-app/schema/dist/assert'
 import { Map } from 'immutable'
 import { PouchDB as ReactPouchDB } from 'react-pouchdb/browser'
-import { script } from 'dynamic-import/dist/import.js'
 import { withDB } from 'react-pouchdb/browser'
-import { assertType } from 'typescript-is'
 
 export interface IAppPartialProps {
   context: AppSchema
@@ -79,7 +78,7 @@ class App extends React.Component<IAppProps, IAppState> {
 
     // Install all configured plugins
     for (const plugin of config.plugins) {
-      this.install(plugin)
+      await this.install(plugin)
     }
 
     // Set current view
@@ -97,7 +96,7 @@ class App extends React.Component<IAppProps, IAppState> {
       this.state.registry.get(plugin + '/package.json') || (
         (await
           (await
-            fetch(plugin + '/package.json')
+            fetch('//unpkg.com/' + plugin + '/package.json')
           ).json()
         )
       )
@@ -105,11 +104,11 @@ class App extends React.Component<IAppProps, IAppState> {
 
     // Plugin type lookup
     const type: string = this.props.context.supportedPlugins[
-      ctx.cognition[`@type`]
+      ctx.cognition.$schema
     ]
     if(type === undefined) {
       throw new Error(
-        ctx.cognition['@type'] + ' is not in `supportedPlugins`'
+        ctx.cognition.$schema + ' is not in `supportedPlugins`'
       )
     }
 
@@ -118,18 +117,20 @@ class App extends React.Component<IAppProps, IAppState> {
   }
 
   async _install_registry(plugin: string, ctx: PluginSchema<RegistrySchema>) {
+    const registry = (await import(/* webpackIgnore: true */ '//unpkg.com/' + plugin + '/' + ctx.main)).default
+
     // Get actual registry items
-    const registry = assertType<PluginSchema<RegistryInstanceSchema>>({
-      ...ctx,
-      cognition: {
-        ...ctx.cognition,
-        items:
-          await
-            (await
-              fetch(plugin + '/' + ctx.main)
-            ).json()
-      }
-    })
+    // const registry = assertType<PluginSchema<RegistryInstanceSchema>>({
+    //   ...ctx,
+    //   cognition: {
+    //     ...ctx.cognition,
+    //     items:
+    //       await
+    //         (await
+    //           fetch('//unpkg.com/' + plugin + '/' + ctx.main)
+    //         ).json()
+    //   }
+    // })
 
     // Load registry into state
     this.setState({
@@ -151,16 +152,16 @@ class App extends React.Component<IAppProps, IAppState> {
   }
 
   async _install_view(plugin: string, ctx: PluginSchema<ViewSchema>) {
-    await script.import(plugin + '/' + ctx.main)
-
     // Complete view
     const view = assertType<PluginSchema<ViewInstanceSchema>>({
       ...ctx,
       cognition: {
         ...ctx.cognition,
-        cls: (window as any).cognition[ctx.name].export.default
+        cls: (await import(/* webpackIgnore: true */ '//unpkg.com/' + plugin + '/' + ctx.main))
       }
     })
+
+    console.log(view)
 
     // Load view into state
     this.setState({
@@ -175,14 +176,12 @@ class App extends React.Component<IAppProps, IAppState> {
   }
 
   async _install_provider(plugin: string, ctx: PluginSchema<ProviderSchema>) {
-    await script.import(plugin + '/' + ctx.main)
-
     // Complete provider
     const provider = assertType<PluginSchema<ProviderInstanceSchema>>({
       ...ctx,
       cognition: {
         ...ctx.cognition,
-        cls: (window as any).cognition[ctx.name].export.default
+        cls: (await import(/* webpackIgnore: true */ '//unpkg.com/' + plugin + '/' + ctx.main)).default
       }
     })
 
@@ -196,15 +195,15 @@ class App extends React.Component<IAppProps, IAppState> {
       live: true,
       include_docs: true,
       selector: {
-        '@type': {
+        $schema: {
           '$eq': 'https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/settings',
         },
-        'content.@type': {
+        'content.$schema': {
           '$eq': ctx.cognition.settings,
         },
       },
     }).on('change', (info: PouchDB.Core.ChangesResponseChange<SettingsSchema>) => {
-      const settings = info.doc as SettingsSchema
+      const settings = info.doc
 
       if(settings._deleted) {
         // TODO: uninstall provider instance
@@ -217,14 +216,14 @@ class App extends React.Component<IAppProps, IAppState> {
       ].join('/')
 
       const instance = provider.cognition.cls(
-        settings.content
+        settings.content as any
       )
 
       const sync = instance.sync(this.props.db, {
         live: true,
         retry: true,
         selector: {
-          '@type': {
+          $schema: {
             '$eq': 'https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/document',
           },
           'tags': {
@@ -279,7 +278,7 @@ class App extends React.Component<IAppProps, IAppState> {
     console.info(info)
 
     const type: string = this.props.context.supportedPlugins[
-      plugin.cognition[`@type`]
+      plugin.cognition.$schema
     ]
 
     this.setState({
@@ -370,8 +369,8 @@ class App extends React.Component<IAppProps, IAppState> {
                         this.setState({
                           view: 'settings',
                           searchDocuments: JSON.stringify({
-                            '@type': {
-                              '$eq': view.settings,
+                            $schema: {
+                              '$eq': view.cognition.settings,
                             }
                           }),
                         })
@@ -408,7 +407,7 @@ class App extends React.Component<IAppProps, IAppState> {
                         this.setState({
                           view: 'settings',
                           searchDocuments: JSON.stringify({
-                            '@type': {
+                            $schema: {
                               '$eq': providerInstance.settings,
                             }
                           }),
@@ -433,7 +432,7 @@ class App extends React.Component<IAppProps, IAppState> {
                         this.setState({
                           view: 'settings',
                           searchDocuments: JSON.stringify({
-                            '@type': {
+                            $schema: {
                               '$eq': providerInstance.settings,
                             }
                           }),
