@@ -1,0 +1,41 @@
+@import '~material-design-icons/iconfont/material-icons.css';
+@import '~materialize-css/dist/css/materialize.min.css';
+
+body {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.root {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  margin: 10px;
+}
+
+@media only screen and (min-width: 993px) {
+  header,
+  main,
+  footer {
+    padding-left: 300px;
+  }
+}
+
+ul.sidenav>li>span {
+  display: block;
+  height: 48px;
+  padding-left: 32px;
+  white-space: nowrap;
+}
+
+ul.sidenav>li>span>a {
+  display: inline-block;
+  padding: 5px;
+}

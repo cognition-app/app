@@ -1,12 +1,14 @@
 {
-  "$schema": "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin.json",
+  "$schema": "https://raw.githubusercontent.com/cognition-app/schema/master/dist/core/plugin",
   "name": "@cognition-app/app",
   "version": "1.0.0",
   "description": "The actual cognition application, assembling all the components in a unifying application",
+  "main": "dist/index.js",
+  "types": "dist/**/*.d.ts",
   "scripts": {
-    "start": "webpack-dev-server --hot",
-    "build": "webpack",
-    "check-types": "tsc"
+    "build:css": "node-sass --recursive --source-map true --output-style compressed --output dist src",
+    "build:ts": "tsc",
+    "build": "npm run build:ts && npm run build:css"
   },
   "repository": {
     "type": "git",
@@ -19,35 +21,15 @@
   },
   "homepage": "https://github.com/cognition-app/app#readme",
   "devDependencies": {
-    "@babel/cli": "^7.1.2",
-    "@babel/core": "^7.1.2",
-    "@babel/plugin-syntax-dynamic-import": "^7.0.0",
-    "@babel/plugin-syntax-jsx": "^7.0.0",
-    "@babel/polyfill": "^7.0.0",
-    "@babel/preset-env": "^7.1.0",
-    "@babel/preset-react": "^7.0.0",
-    "@babel/preset-typescript": "^7.1.0",
-    "@babel/register": "^7.0.0",
     "@types/enzyme": "^3.1.14",
     "@types/enzyme-adapter-react-16": "^1.0.3",
-    "@types/webpack-env": "^1.13.6",
-    "babel-core": "^7.0.0-bridge.0",
-    "babel-loader": "^8.0.4",
-    "core-js": "^2.5.7",
     "enzyme": "^3.7.0",
     "enzyme-adapter-react-16": "^1.6.0",
-    "html-webpack-plugin": "^3.2.0",
     "mocha": "^5.2.0",
-    "mocha-loader": "^2.0.0",
-    "react-hot-loader": "^4.3.11",
-    "source-map-loader": "^0.2.4",
+    "node-sass": "^4.9.4",
     "tslint": "^5.11.0",
     "tslint-react": "^3.6.0",
-    "typescript": "^3.1.3",
-    "webpack": "^4.20.2",
-    "webpack-cli": "^3.1.2",
-    "webpack-dev-server": "^3.1.9",
-    "webpack-require-http": "^0.4.3"
+    "typescript": "^3.1.3"
   },
   "dependencies": {
     "@cognition-app/schema": "file:../schema",
@@ -57,15 +39,15 @@
     "@types/pouchdb-browser": "^6.1.2",
     "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
+    "browserify": "^16.2.3",
     "dynamic-import": "^0.1.0",
     "immutable": "^3.8.2",
+    "material-design-icons": "^3.0.1",
     "materialize-css": "^1.0.0-rc.2",
     "pouchdb-browser": "^7.0.0",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
-    "react-pouchdb": "^0.3.0",
-    "requirejs": "^2.3.6",
-    "systemjs": "^2.0.2"
+    "react-pouchdb": "^0.3.0"
   },
   "cognition": {
     "$schema": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/plugin",
@@ -78,9 +60,9 @@
     "configId": "cognition",
     "config": {
       "$schema": "https://raw.githubusercontent.com/cognition-app/app/master/dist/schema/app/config",
-      "view": "@cognition-app/view-dummy@1.0.0",
+      "view": "@cognition-app/view-dummy",
       "plugins": [
-        "@cognition-app/view-dummy@1.0.0"
+        "@cognition-app/view-dummy"
       ]
     }
   }

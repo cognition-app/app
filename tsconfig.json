@@ -5,9 +5,9 @@
     "noImplicitAny": false,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
-    "allowJs": true,
+    "declaration": true,
     "moduleResolution": "node",
-    "module": "amd",
+    "module": "commonjs",
     "target": "es6",
     "jsx": "react",
     "lib": [

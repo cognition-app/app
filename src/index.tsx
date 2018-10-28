@@ -1,21 +1,18 @@
-
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import App from './App'
-import AppSchema from './schema/app/plugin'
-import { cognition } from '../package.json'
+import M from 'materialize-css/dist/js/materialize.min.js'
+import './index.css'
 
-const context = cognition as AppSchema
+export async function init(props, root?) {
+  const app = <App {...props} />
 
-const app = (
-  <App
-    context={context}
-  />
-)
+  if (root === undefined)
+    root = document.body
 
-ReactDOM.render(
-  app,
-  document.getElementById('root')
-)
+  ReactDOM.render(app, root)
 
-export default app
+  M.AutoInit();
+
+  return app
+}

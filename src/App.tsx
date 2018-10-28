@@ -96,7 +96,7 @@ class App extends React.Component<IAppProps, IAppState> {
       this.state.registry.get(plugin + '/package.json') || (
         (await
           (await
-            fetch('//unpkg.com/' + plugin + '/package.json')
+            fetch(plugin + '/package.json')
           ).json()
         )
       )
@@ -117,7 +117,7 @@ class App extends React.Component<IAppProps, IAppState> {
   }
 
   async _install_registry(plugin: string, ctx: PluginSchema<RegistrySchema>) {
-    const registry = (await import(/* webpackIgnore: true */ '//unpkg.com/' + plugin + '/' + ctx.main)).default
+    const registry = (await import(plugin + '/' + ctx.main)).default
 
     // Get actual registry items
     // const registry = assertType<PluginSchema<RegistryInstanceSchema>>({
@@ -127,7 +127,7 @@ class App extends React.Component<IAppProps, IAppState> {
     //     items:
     //       await
     //         (await
-    //           fetch('//unpkg.com/' + plugin + '/' + ctx.main)
+    //           fetch(plugin + '/' + ctx.main)
     //         ).json()
     //   }
     // })
@@ -157,7 +157,7 @@ class App extends React.Component<IAppProps, IAppState> {
       ...ctx,
       cognition: {
         ...ctx.cognition,
-        cls: (await import(/* webpackIgnore: true */ '//unpkg.com/' + plugin + '/' + ctx.main))
+        cls: (await import(plugin + '/' + ctx.main))
       }
     })
 
@@ -181,7 +181,7 @@ class App extends React.Component<IAppProps, IAppState> {
       ...ctx,
       cognition: {
         ...ctx.cognition,
-        cls: (await import(/* webpackIgnore: true */ '//unpkg.com/' + plugin + '/' + ctx.main)).default
+        cls: (await import(plugin + '/' + ctx.main)).default
       }
     })
 
